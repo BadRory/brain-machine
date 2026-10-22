@@ -1,0 +1,13 @@
+# Build / generated artifacts
+*.bin
+*.elf
+build/
+.pio/
+.vscode/
+# OS
+.DS_Store
+Thumbs.db
+# Secrets / local config
+secrets.h
+wifi_config.h
+*.local
