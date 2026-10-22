@@ -14,7 +14,7 @@
 
 EntrainmentEngine Engine;
 
-static constexpr double TWO_PI = 6.283185307179586;
+static constexpr double kTwoPi = 6.283185307179586;
 static constexpr i2s_port_t I2S_PORT = I2S_NUM_0;
 
 // --- clamp helpers ---
@@ -30,6 +30,11 @@ void EntrainmentEngine::begin() {
   ledcWrite(PIN_LED_RIGHT, 0);
 
   // I2S master TX to the PCM5102A.
+  // The legacy i2s driver fields (dma_buf_count/dma_buf_len) are marked
+  // deprecated by the newer core but remain the supported Arduino path; the
+  // core builds with -Werror on that warning, so scope it off for this block.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   i2s_config_t cfg = {};
   cfg.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
   cfg.sample_rate = AUDIO_SAMPLE_RATE;
@@ -38,10 +43,11 @@ void EntrainmentEngine::begin() {
   cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
   cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
   cfg.dma_buf_count = 6;
-  cfg.dma_buf_len = AUDIO_FRAMES;
+  cfg.dma_buf_len = AUDIO_FRAMES;  // legacy alias of dma_frame_num
   cfg.use_apll = true;              // low-jitter clock for clean beats
   cfg.tx_desc_auto_clear = true;
   i2s_driver_install(I2S_PORT, &cfg, 0, nullptr);
+#pragma GCC diagnostic pop
 
   i2s_pin_config_t pins = {};
   pins.bck_io_num = PIN_I2S_BCLK;
@@ -129,9 +135,9 @@ void EntrainmentEngine::audioTask() {
     float t = elapsed_s_;
     float hz = freqAt(t);                  // entrainment rate this block
     float carrier = clampf(session_.audio.carrier_hz, 50.0f, 1000.0f);
-    double wL = TWO_PI * carrier;          // left carrier
-    double wR = TWO_PI * (carrier + hz);   // right carrier -> beat = hz
-    double wE = TWO_PI * hz;               // entrainment envelope + LED
+    double wL = kTwoPi * carrier;          // left carrier
+    double wR = kTwoPi * (carrier + hz);   // right carrier -> beat = hz
+    double wE = kTwoPi * hz;               // entrainment envelope + LED
 
     // Soft-start + stop ramp for volume/brightness.
     float env = 1.0f;
@@ -150,9 +156,9 @@ void EntrainmentEngine::audioTask() {
       block[n * 2 + 0] = sl;
       block[n * 2 + 1] = sr;
 
-      phaseL_ += wL * dt; if (phaseL_ > TWO_PI) phaseL_ -= TWO_PI;
-      phaseR_ += wR * dt; if (phaseR_ > TWO_PI) phaseR_ -= TWO_PI;
-      entrainPhase_ += wE * dt; if (entrainPhase_ > TWO_PI) entrainPhase_ -= TWO_PI;
+      phaseL_ += wL * dt; if (phaseL_ > kTwoPi) phaseL_ -= kTwoPi;
+      phaseR_ += wR * dt; if (phaseR_ > kTwoPi) phaseR_ -= kTwoPi;
+      entrainPhase_ += wE * dt; if (entrainPhase_ > kTwoPi) entrainPhase_ -= kTwoPi;
     }
 
     // LED duty from the SAME entrainment phase the beat uses -> locked.

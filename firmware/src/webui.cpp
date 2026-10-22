@@ -54,7 +54,8 @@ namespace {
     sendJson(req, 200, doc);
   }
 
-  void handleRun(AsyncWebServerRequest* req, uint8_t* data, size_t len) {
+  void handleRun(AsyncWebServerRequest* req, uint8_t* data, size_t len,
+                 size_t index, size_t total) {
     JsonDocument body;
     if (deserializeJson(body, data, len)) { req->send(400, "text/plain", "bad json"); return; }
     String id = body["id"] | "";
@@ -64,7 +65,8 @@ namespace {
     req->send(ok ? 200 : 409, "text/plain", ok ? "started" : "busy");
   }
 
-  void handleSave(AsyncWebServerRequest* req, uint8_t* data, size_t len) {
+  void handleSave(AsyncWebServerRequest* req, uint8_t* data, size_t len,
+                  size_t index, size_t total) {
     JsonDocument body;
     if (deserializeJson(body, data, len)) { req->send(400, "text/plain", "bad json"); return; }
     Session s;
@@ -80,7 +82,8 @@ namespace {
     sendJson(req, 200, doc);
   }
 
-  void handleWifiSet(AsyncWebServerRequest* req, uint8_t* data, size_t len) {
+  void handleWifiSet(AsyncWebServerRequest* req, uint8_t* data, size_t len,
+                     size_t index, size_t total) {
     JsonDocument body;
     if (deserializeJson(body, data, len)) { req->send(400, "text/plain", "bad json"); return; }
     String ssid = body["ssid"] | "";
