@@ -1,9 +1,10 @@
 // config.h — board pin map, audio params, and SAFETY CAPS.
-// Brain Machine (Stage 1), XIAO ESP32-S3. Fork of Mitch Altman's Brain Machine.
+// Brain Machine (Stage 1). Fork of Mitch Altman's Brain Machine.
 #pragma once
 
-// ---- Pin map (XIAO ESP32-S3 silk -> ESP32-S3 GPIO) ----
-// Matches hardware/STAGE1_HARDWARE.md §4.
+// ---- Pin map (per board, selected by the env's build flag) ----
+#if defined(BM_BOARD_XIAO_S3)
+// XIAO ESP32-S3 silk -> ESP32-S3 GPIO. Matches hardware/STAGE1_HARDWARE.md §4.
 #define PIN_I2S_BCLK   2   // D1  -> PCM5102 BCK
 #define PIN_I2S_LRCLK  3   // D2  -> PCM5102 LRCK
 #define PIN_I2S_DOUT   4   // D3  -> PCM5102 DIN
@@ -12,6 +13,23 @@
 #define PIN_LED_LEFT   1   // D0  -> left-eye LED (PWM)
 #define PIN_LED_RIGHT  8   // D9  -> right-eye LED (PWM)
 #define PIN_STOP_BTN   9   // D10 -> stop button (to GND, internal pull-up)
+
+#elif defined(BM_BOARD_ESP32DEV)
+// Classic ESP32-D / WROOM DevKit — dev board for UI work. Safe GPIOs chosen to
+// avoid strapping/flash pins. Audio/PPG parts are NOT wired yet; these are
+// placeholders so the firmware builds and the LED/button can be exercised.
+#define PIN_I2S_BCLK   26  // free, I2S-capable
+#define PIN_I2S_LRCLK  25
+#define PIN_I2S_DOUT   22
+#define PIN_I2C_SDA    21  // classic ESP32 default SDA
+#define PIN_I2C_SCL    19
+#define PIN_LED_LEFT   16  // onboard/dev LED-safe GPIOs
+#define PIN_LED_RIGHT  17
+#define PIN_STOP_BTN   4   // to GND, internal pull-up
+
+#else
+#error "No board selected: define BM_BOARD_XIAO_S3 or BM_BOARD_ESP32DEV in platformio.ini build_flags"
+#endif
 
 // ---- Audio ----
 #define AUDIO_SAMPLE_RATE 44100
