@@ -16,6 +16,10 @@ This fork moves from the original ATtiny to a **Seeed XIAO ESP32-S3** and adds:
   biofeedback.
 - A hardware design that **keeps a clean path to a future EEG front-end** so
   that upgrade never forces a redesign.
+- **Optional aesthetic LCDs** — two outward-facing round screens for observer
+  visual feedback, driven by a **separate second ESP32** so they can never
+  disturb the phase-locked light/audio pulse (see
+  [`hardware/DISPLAY_ESP32.md`](hardware/DISPLAY_ESP32.md)).
 
 ## Credit & license
 
