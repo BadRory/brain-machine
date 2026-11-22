@@ -18,6 +18,12 @@ namespace {
   uint32_t g_okAt = 0;
   bool g_mdnsUp = false;
 
+  // Scan state (all driven from Net::loop on the main task).
+  volatile bool g_scanReq = false;
+  bool g_scanning = false;
+  uint32_t g_scanStarted = 0;
+  String g_scanCache;               // last finished result, JSON
+
   String apSsid() {
     uint8_t mac[6];
     WiFi.macAddress(mac);
@@ -94,6 +100,42 @@ void Net::begin() {
 }
 
 void Net::loop() {
+  // 0) wifi scan, run here so it never blocks or races the web task.
+  if (g_scanReq && !g_scanning && g_join != JoinState::Joining) {
+    g_scanReq = false;
+    WiFi.scanDelete();
+    int rc = WiFi.scanNetworks(true, false, false, 300);   // async, 300 ms/channel
+    Serial.printf("[net] scan start rc=%d\n", rc);
+    g_scanning = true;
+    g_scanStarted = millis();
+  }
+  if (g_scanning) {
+    int n = WiFi.scanComplete();
+    if (n >= 0) {
+      JsonDocument doc;
+      JsonArray arr = doc["networks"].to<JsonArray>();
+      for (int i = 0; i < n; ++i) {
+        String s = WiFi.SSID(i);
+        if (s.isEmpty()) continue;
+        JsonObject o = arr.add<JsonObject>();
+        o["ssid"] = s;
+        o["rssi"] = WiFi.RSSI(i);
+        o["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+      }
+      g_scanCache = "";
+      serializeJson(doc, g_scanCache);
+      WiFi.scanDelete();
+      g_scanning = false;
+      Serial.printf("[net] scan done: %d networks\n", n);
+    } else if (n == WIFI_SCAN_FAILED || millis() - g_scanStarted > 15000) {
+      g_scanCache = "{\"networks\":[],\"error\":\"scan failed\"}";
+      WiFi.scanDelete();
+      g_scanning = false;
+      Serial.println("[net] scan failed");
+    }
+    return;                          // don't start a join mid-scan
+  }
+
   // 1) start a queued join; hotspot stays up so the UI can read the result.
   if (g_pending) {
     String ssid = g_pSsid, pass = g_pPass;
@@ -105,6 +147,7 @@ void Net::loop() {
     g_joinSsid = ssid; g_joinIp = "";
     g_join = JoinState::Joining;
     g_joinStart = millis();
+    Serial.printf("[net] joining '%s'...\n", ssid.c_str());
     return;
   }
 
@@ -120,7 +163,7 @@ void Net::loop() {
     } else if (millis() - g_joinStart > WIFI_SETUP_JOIN_TIMEOUT_MS) {
       WiFi.disconnect();
       g_join = JoinState::Failed;
-      Serial.printf("[net] join failed for %s\n", g_joinSsid.c_str());
+      Serial.printf("[net] join failed for %s (wifi status %d)\n", g_joinSsid.c_str(), (int)WiFi.status());
     }
     return;
   }
@@ -159,25 +202,10 @@ void Net::forgetHomeWifi() {
   startAP();
 }
 
-String Net::scanJson() {
-  int n = WiFi.scanComplete();
-  if (n == WIFI_SCAN_FAILED) {            // none started yet
-    WiFi.scanNetworks(true);              // async
-    return "{\"scanning\":true}";
-  }
-  if (n == WIFI_SCAN_RUNNING) return "{\"scanning\":true}";
+void Net::scanStart() { g_scanCache = ""; g_scanReq = true; }
 
-  JsonDocument doc;
-  JsonArray arr = doc["networks"].to<JsonArray>();
-  for (int i = 0; i < n; ++i) {
-    String s = WiFi.SSID(i);
-    if (s.isEmpty()) continue;
-    JsonObject o = arr.add<JsonObject>();
-    o["ssid"] = s;
-    o["rssi"] = WiFi.RSSI(i);
-    o["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
-  }
-  WiFi.scanDelete();
-  String out; serializeJson(doc, out);
-  return out;
+String Net::scanJson() {
+  if (g_scanReq || g_scanning) return "{\"scanning\":true}";
+  if (g_scanCache.isEmpty()) return "{\"scanning\":true}";
+  return g_scanCache;
 }

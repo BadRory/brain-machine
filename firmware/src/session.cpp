@@ -176,6 +176,10 @@ const std::vector<Session>& builtinSessions() {
   static std::vector<Session> presets = [] {
     std::vector<Session> v;
     v.push_back(makeClassic());
+    // Hidden (category "test"): 6 s plain tone for checking the audio wiring.
+    v.push_back(makeSimple("test-tone", "Test tone", "test",
+        "440 Hz in both ears.", 1.0f, 0.1f, 440.0f, "binaural", "none"));
+    v.back().steps[0].hz = 0.5f;           // 440 vs 440.5 Hz: a steady tone
     v.push_back(makeSimple("alpha-relax", "Alpha relax (10 Hz)", "relax",
         "Steady 10 Hz. Light, relaxed, awake. 15 minutes.",
         10.0f, 15.0f, 200.0f, "binaural", "none"));

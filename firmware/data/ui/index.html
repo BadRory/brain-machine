@@ -166,6 +166,12 @@
       </div>
       <div class="muted" id="wifiMsg" style="margin-top:8px"></div>
     </div>
+  <div class="card">
+      <h2>Audio test</h2>
+      <div class="muted">Plays a quiet steady tone. Turn the headphone volume down first.</div>
+      <div class="row" style="margin-top:10px"><button onclick="testTone()">Play test tone</button></div>
+      <div class="muted" id="toneMsg" style="margin-top:8px"></div>
+    </div>
   </section>
 </main>
 
@@ -335,21 +341,27 @@ async function loadWifi(){
   $('#wifiState').textContent = w ? `${w.mode==='sta'?'Joined':'Hotspot'}: ${w.ssid} (${w.ip})` : '—';
 }
 async function scanWifi(){
-  const box = $('#wifiList'); box.innerHTML = '<div class="muted">Scanning…</div>';
-  for(let i=0;i<10;i++){
-    const r = await jget('/api/wifi/scan');
+  const box = $('#wifiList'); box.innerHTML = '<div class="muted">Scanning… (about 5 seconds)</div>';
+  let r = await jget('/api/wifi/scan?fresh=1');
+  for(let i=0;i<20;i++){
     if(r && r.networks){
       const seen = new Set();
       const nets = r.networks.sort((a,b)=>b.rssi-a.rssi).filter(n=>!seen.has(n.ssid)&&seen.add(n.ssid));
       box.innerHTML = nets.map(n=>`<div class="sess net" data-ssid="${esc(n.ssid)}"
         onclick="$('#wSsid').value=this.dataset.ssid;$('#wPass').focus()">
         <div>${esc(n.ssid)}</div><small>${n.secure?'🔒':'open'} · ${n.rssi} dBm</small></div>`).join('')
-        || '<div class="muted">No networks found.</div>';
+        || `<div class="muted">${r.error?'Scan failed. Try again, or type the name below.':'No networks found.'}</div>`;
       return;
     }
-    await new Promise(r=>setTimeout(r,1000));
+    await new Promise(x=>setTimeout(x,1000));
+    r = await jget('/api/wifi/scan');
   }
-  box.innerHTML = '<div class="muted">Scan timed out. Type the name instead.</div>';
+  box.innerHTML = '<div class="muted">Scan did not finish. Type the network name below instead.</div>';
+}
+async function testTone(){
+  const r = await api('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:'test-tone',brightness:0,volume:0.4,soundscape:'none'})});
+  $('#toneMsg').textContent = r.ok ? 'Playing a 440 Hz tone for 6 seconds…' : await r.text();
 }
 async function saveWifi(){
   const ssid=$('#wSsid').value.trim(), pass=$('#wPass').value;
@@ -364,7 +376,7 @@ async function saveWifi(){
     if(!j) continue;   // the hotspot can blip while it switches channel
     if(j.state==='ok'){
       $('#wifiMsg').innerHTML = `Joined <b>${esc(j.ssid)}</b>. Address: <b>${esc(j.ip)}</b> or
-        <b>http://${esc(j.host)}</b>.<br>The hotspot closes in under a minute. Switch your phone
+        <b>http://${esc(j.host)}</b>.<br>If this page stops responding, that is normal. The hotspot closes in under a minute. Switch your phone
         back to your home WiFi and open that address.`;
       return;
     }

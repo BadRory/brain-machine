@@ -40,6 +40,12 @@ namespace {
   void logFinishedSessions() {
     EngineStatus st = Engine.status();
     bool running = st.state != EngineState::Idle;
+    static uint32_t lastPrint = 0;
+    if (running && millis() - lastPrint > 5000) {
+      lastPrint = millis();
+      Serial.printf("[audio] %s t=%.0fs hz=%.2f carrier=%.0f\n", st.sessionId.c_str(),
+                    st.elapsed_s, st.current_hz, st.carrier_hz);
+    }
     if (running) { lastId = st.sessionId; lastElapsed = st.elapsed_s; }
     if (wasRunning && !running && lastElapsed > 30) {
       Store::appendHistory(lastId, st.elapsed_s > lastElapsed ? st.elapsed_s : lastElapsed, {});

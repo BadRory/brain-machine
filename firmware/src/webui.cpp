@@ -75,6 +75,9 @@ namespace {
     if (body["noise_vol"].is<float>())  s.audio.noise_vol = body["noise_vol"].as<float>();
     if (body["brightness"].is<float>()) s.light.brightness = body["brightness"].as<float>();
     bool ok = Engine.start(s);
+    Serial.printf("[run] %s tone=%s bed=%s vol=%.2f light=%.2f -> %s\n", s.id.c_str(),
+                  s.audio.tone.c_str(), s.audio.soundscape.c_str(), s.audio.volume,
+                  s.light.brightness, ok ? "started" : "refused");
     req->send(ok ? 200 : 409, "text/plain", ok ? "started" : "a session is already running");
   }
 
@@ -160,6 +163,7 @@ void WebUI::begin() {
   });
   server.on("/api/wifi", HTTP_GET, handleWifiGet);
   server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest* req) {
+    if (req->hasParam("fresh")) Net::scanStart();
     req->send(200, "application/json", Net::scanJson());
   });
   server.on("/api/wifi/join", HTTP_GET, handleJoinStatus);

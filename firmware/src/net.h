@@ -24,7 +24,8 @@ namespace Net {
   String joinSsid();
   void forgetHomeWifi();
 
-  // Network scan for the setup page. Returns JSON: {"scanning":true} or
-  // {"networks":[{"ssid":"..","rssi":-50,"secure":true}, ...]}.
-  String scanJson();
+  // Network scan for the setup page. The scan runs on the main loop (not the
+  // web task). Result JSON: {"networks":[{"ssid":"..","rssi":-50,"secure":true}]}
+  void scanStart();                  // ask the main loop to run a fresh scan
+  String scanJson();                 // {"scanning":true} until the scan is done
 }
