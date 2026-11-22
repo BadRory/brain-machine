@@ -77,6 +77,12 @@
 <main>
   <!-- HOME -->
   <section id="view-home">
+    <div class="card hidden" id="wifiBanner" style="border-color:var(--accent)">
+      <h2>Connect to your WiFi</h2>
+      <div class="muted">Right now the device is running its own hotspot. Join your
+        home WiFi so you can reach it from any room.</div>
+      <div style="margin-top:10px"><button class="primary" onclick="go('settings')">Set up WiFi</button></div>
+    </div>
     <div class="card">
       <h2>Today</h2>
       <div class="row">
@@ -377,6 +383,7 @@ async function forgetWifi(){
 function applyStatus(s){
   if(!s) return;
   if(s.ssid) $('#net').textContent = (s.net_mode==='sta'?'home wifi: ':'hotspot: ')+s.ssid+' · '+s.ip;
+  if(s.net_mode) $('#wifiBanner').classList.toggle('hidden', s.net_mode!=='ap');
   const running = s.state==='running'||s.state==='stopping';
   $('#runHz').textContent = (s.current_hz? s.current_hz.toFixed(1):'—')+' Hz'+(s.carrier_hz?' · '+Math.round(s.carrier_hz)+' Hz tone':'');
   $('#runTimer').textContent = fmt(s.elapsed_s)+' / '+fmt(s.total_s);
