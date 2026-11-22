@@ -31,6 +31,21 @@ namespace {
       }
     }
   }
+
+  // Log a session to history when the engine goes Running -> Idle.
+  bool wasRunning = false;
+  String lastId;
+  float lastElapsed = 0;
+
+  void logFinishedSessions() {
+    EngineStatus st = Engine.status();
+    bool running = st.state != EngineState::Idle;
+    if (running) { lastId = st.sessionId; lastElapsed = st.elapsed_s; }
+    if (wasRunning && !running && lastElapsed > 30) {
+      Store::appendHistory(lastId, st.elapsed_s > lastElapsed ? st.elapsed_s : lastElapsed, {});
+    }
+    wasRunning = running;
+  }
 }
 
 void setup() {
@@ -52,6 +67,8 @@ void setup() {
 
 void loop() {
   pollStopButton();
+  Net::loop();
   WebUI::loop();
+  logFinishedSessions();
   delay(2);
 }

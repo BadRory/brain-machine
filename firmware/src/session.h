@@ -10,6 +10,7 @@ struct Step {
   float hz       = 10.0f; // entrainment target: drives BOTH LED flash + beat
   float minutes  = 2.0f;  // dwell at this hz
   float fade_s   = 30.0f; // fade FROM previous step's hz INTO this one
+  float carrier_hz = 0.0f; // 0 = use the session carrier; else glide to this tone
 };
 
 struct LightCfg {
@@ -19,13 +20,17 @@ struct LightCfg {
 
 struct AudioCfg {
   float carrier_hz = 200.0f;      // base tone; beat = carrier .. carrier+hz
-  String soundscape = "none";     // none | soft-rain | pink-noise | pad
-  float volume      = 0.6f;       // 0..1
+  String tone       = "binaural"; // binaural | isochronic | chakra
+  String soundscape = "none";     // none | rain | ocean | pink | brown
+  float volume      = 0.6f;       // 0..1 (tone)
+  float noise_vol   = 0.35f;      // 0..1 (soundscape bed)
 };
 
 struct Session {
   String id;
   String name;
+  String category = "custom";     // classic | chakra | relax | sleep | focus | custom
+  String blurb;                   // one line shown in the UI
   std::vector<Step> steps;
   LightCfg light;
   AudioCfg audio;

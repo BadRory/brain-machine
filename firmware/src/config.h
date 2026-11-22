@@ -57,7 +57,12 @@
 // ---- Networking ----
 #define AP_SSID_PREFIX   "BrainMachine-"
 #define MDNS_HOSTNAME    "brainmachine"
-#define WIFI_JOIN_TIMEOUT_MS 9000
+#define WIFI_JOIN_TIMEOUT_MS 9000        // at boot (blocking)
+#define WIFI_SETUP_JOIN_TIMEOUT_MS 15000 // when joining from the web UI
+#define AP_LINGER_MS     45000           // keep hotspot this long after a join
+// Hotspot password (min 8 chars). Stops neighbours from driving the lights.
+// Change it here if you like; it is printed on the serial monitor at boot.
+#define AP_PASSWORD      "meditate1"
 
 // ---- Storage ----
 #define SESSIONS_DIR   "/sessions"   // user sequences (LittleFS)

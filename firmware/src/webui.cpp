@@ -31,6 +31,10 @@ namespace {
       JsonObject o = arr.add<JsonObject>();
       o["id"] = s.id; o["name"] = s.name;
       o["builtin"] = builtin; o["total_s"] = s.totalSeconds();
+      o["category"] = s.category; o["blurb"] = s.blurb;
+      o["tone"] = s.audio.tone; o["soundscape"] = s.audio.soundscape;
+      o["volume"] = s.audio.volume; o["noise_vol"] = s.audio.noise_vol;
+      o["brightness"] = s.light.brightness;
     };
     for (const auto& s : builtinSessions()) emit(s, true);
     for (const auto& s : Store::userSessions()) emit(s, false);
@@ -47,6 +51,7 @@ namespace {
     doc["elapsed_s"] = st.elapsed_s;
     doc["total_s"] = st.total_s;
     doc["current_hz"] = st.current_hz;
+    doc["carrier_hz"] = st.carrier_hz;
     doc["step"] = (uint32_t)st.step_index;
     doc["net_mode"] = Net::mode() == NetMode::STA ? "sta" : "ap";
     doc["ssid"] = Net::ssid();
@@ -54,6 +59,8 @@ namespace {
     sendJson(req, 200, doc);
   }
 
+  // POST /api/run {id, tone?, soundscape?, volume?, noise_vol?, brightness?, pattern?}
+  // The optional fields override the preset for this run only.
   void handleRun(AsyncWebServerRequest* req, uint8_t* data, size_t len,
                  size_t index, size_t total) {
     JsonDocument body;
@@ -61,8 +68,14 @@ namespace {
     String id = body["id"] | "";
     Session s;
     if (!Store::find(id, s)) { req->send(404, "text/plain", "no such session"); return; }
+    if (body["tone"].is<const char*>())       s.audio.tone = body["tone"].as<String>();
+    if (body["soundscape"].is<const char*>()) s.audio.soundscape = body["soundscape"].as<String>();
+    if (body["pattern"].is<const char*>())    s.light.pattern = body["pattern"].as<String>();
+    if (body["volume"].is<float>())     s.audio.volume = body["volume"].as<float>();
+    if (body["noise_vol"].is<float>())  s.audio.noise_vol = body["noise_vol"].as<float>();
+    if (body["brightness"].is<float>()) s.light.brightness = body["brightness"].as<float>();
     bool ok = Engine.start(s);
-    req->send(ok ? 200 : 409, "text/plain", ok ? "started" : "busy");
+    req->send(ok ? 200 : 409, "text/plain", ok ? "started" : "a session is already running");
   }
 
   void handleSave(AsyncWebServerRequest* req, uint8_t* data, size_t len,
@@ -89,9 +102,22 @@ namespace {
     String ssid = body["ssid"] | "";
     String pass = body["pass"] | "";
     if (ssid.isEmpty()) { req->send(400, "text/plain", "ssid required"); return; }
-    // Respond BEFORE reconnecting (the join drops this AP client).
-    req->send(200, "text/plain", "saved; joining — reconnect to the device");
-    Net::setHomeWifi(ssid, pass);
+    Net::requestJoin(ssid, pass);       // non-blocking; UI polls /api/wifi/join
+    req->send(202, "text/plain", "joining");
+  }
+
+  void handleJoinStatus(AsyncWebServerRequest* req) {
+    JsonDocument doc;
+    switch (Net::joinState()) {
+      case JoinState::Joining: doc["state"] = "joining"; break;
+      case JoinState::Ok:      doc["state"] = "ok"; break;
+      case JoinState::Failed:  doc["state"] = "failed"; break;
+      default:                 doc["state"] = "idle";
+    }
+    doc["ssid"] = Net::joinSsid();
+    doc["ip"] = Net::joinIp();
+    doc["host"] = String(MDNS_HOSTNAME) + ".local";
+    sendJson(req, 200, doc);
   }
 
   void pushStatus() {
@@ -103,6 +129,7 @@ namespace {
     doc["elapsed_s"] = st.elapsed_s;
     doc["total_s"] = st.total_s;
     doc["current_hz"] = st.current_hz;
+    doc["carrier_hz"] = st.carrier_hz;
     doc["step"] = (uint32_t)st.step_index;
     String out; serializeJson(doc, out);
     ws.textAll(out);
@@ -132,6 +159,13 @@ void WebUI::begin() {
     Engine.stop(); req->send(200, "text/plain", "stopping");
   });
   server.on("/api/wifi", HTTP_GET, handleWifiGet);
+  server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest* req) {
+    req->send(200, "application/json", Net::scanJson());
+  });
+  server.on("/api/wifi/join", HTTP_GET, handleJoinStatus);
+  server.on("/api/wifi/forget", HTTP_POST, [](AsyncWebServerRequest* req) {
+    Net::forgetHomeWifi(); req->send(200, "text/plain", "forgotten");
+  });
 
   // Body-bearing POSTs.
   server.on("/api/run", HTTP_POST, [](AsyncWebServerRequest*) {}, nullptr, handleRun);
