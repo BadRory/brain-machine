@@ -7,6 +7,10 @@ a redesign.
 
 Credit: forked from Mitch Altman's Brain Machine (CC BY-SA). Keep attribution.
 
+> The optional outward-facing aesthetic LCDs are a **separate subsystem on a
+> second ESP32** and do not touch anything below. See
+> [`DISPLAY_ESP32.md`](DISPLAY_ESP32.md).
+
 ---
 
 ## 1. Design goals
