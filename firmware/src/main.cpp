@@ -11,6 +11,7 @@
 #include "net.h"
 #include "webui.h"
 #include "engine.h"
+#include "heart.h"
 
 namespace {
   // Debounced active-low stop button.
@@ -43,12 +44,15 @@ namespace {
     static uint32_t lastPrint = 0;
     if (running && millis() - lastPrint > 5000) {
       lastPrint = millis();
-      Serial.printf("[audio] %s t=%.0fs hz=%.2f carrier=%.0f\n", st.sessionId.c_str(),
-                    st.elapsed_s, st.current_hz, st.carrier_hz);
+      Serial.printf("[audio] %s t=%.0fs hz=%.2f carrier=%.0f bpm=%u\n", st.sessionId.c_str(),
+                    st.elapsed_s, st.current_hz, st.carrier_hz, Heart::bpm());
     }
+    if (running && !wasRunning) Heart::sessionStart();
+    if (running) Heart::sessionTick();
     if (running) { lastId = st.sessionId; lastElapsed = st.elapsed_s; }
     if (wasRunning && !running && lastElapsed > 30) {
-      Store::appendHistory(lastId, st.elapsed_s > lastElapsed ? st.elapsed_s : lastElapsed, {});
+      Store::appendHistory(lastId, st.elapsed_s > lastElapsed ? st.elapsed_s : lastElapsed,
+                         Heart::sessionSamples());
     }
     wasRunning = running;
   }
@@ -63,7 +67,8 @@ void setup() {
 
   Store::begin();   // LittleFS: sessions + history + wifi creds
   Net::begin();     // try saved home WiFi, else hotspot fallback
-  Engine.begin();   // I2S + LEDC + audio task (idle until start())
+  Engine.begin();
+  Heart::begin();   // forehead PPG on I2C (own task, core 0)
   WebUI::begin();   // control API + static UI + captive portal
 
   Serial.printf("[boot] ready. %s  http://%s\n",

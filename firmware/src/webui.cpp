@@ -6,6 +6,7 @@
 #include "engine.h"
 #include "store.h"
 #include "session.h"
+#include "heart.h"
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <WiFi.h>
@@ -53,6 +54,10 @@ namespace {
     doc["current_hz"] = st.current_hz;
     doc["carrier_hz"] = st.carrier_hz;
     doc["step"] = (uint32_t)st.step_index;
+    doc["hr_present"] = Heart::present();
+    doc["hr_contact"] = Heart::contact();
+    doc["bpm"] = Heart::bpm();
+    doc["hr_ir"] = Heart::ir();
     doc["net_mode"] = Net::mode() == NetMode::STA ? "sta" : "ap";
     doc["ssid"] = Net::ssid();
     doc["ip"] = Net::ip();
@@ -134,6 +139,10 @@ namespace {
     doc["current_hz"] = st.current_hz;
     doc["carrier_hz"] = st.carrier_hz;
     doc["step"] = (uint32_t)st.step_index;
+    doc["hr_present"] = Heart::present();
+    doc["hr_contact"] = Heart::contact();
+    doc["bpm"] = Heart::bpm();
+    doc["hr_ir"] = Heart::ir();
     String out; serializeJson(doc, out);
     ws.textAll(out);
   }

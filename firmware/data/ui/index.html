@@ -167,6 +167,13 @@
       <div class="muted" id="wifiMsg" style="margin-top:8px"></div>
     </div>
   <div class="card">
+      <h2>Heart sensor</h2>
+      <div style="font-size:22px;font-weight:700" id="hrLive">—</div>
+      <div class="muted" id="hrIr"></div>
+      <div class="muted" style="margin-top:6px">Press the sensor flat on the skin and keep still.
+        A reading takes about 10 seconds.</div>
+    </div>
+    <div class="card">
       <h2>Audio test</h2>
       <div class="muted">Plays a quiet steady tone. Turn the headphone volume down first.</div>
       <div class="row" style="margin-top:10px"><button onclick="testTone()">Play test tone</button></div>
@@ -401,7 +408,12 @@ function applyStatus(s){
   $('#runHz').textContent = (s.current_hz? s.current_hz.toFixed(1):'—')+' Hz'+(s.carrier_hz?' · '+Math.round(s.carrier_hz)+' Hz tone':'');
   $('#runTimer').textContent = fmt(s.elapsed_s)+' / '+fmt(s.total_s);
   $('#runBar').style.width = s.total_s? Math.min(100,100*s.elapsed_s/s.total_s)+'%':'0';
-  if(s.bpm){ $('#runBpm').textContent = s.bpm+' bpm'; $('#hbDot').classList.add('on'); }
+  const hr = !s.hr_present ? 'heart sensor not found'
+    : !s.hr_contact ? 'heart: no skin contact'
+    : s.bpm ? s.bpm+' bpm' : 'heart: finding pulse…';
+  $('#runBpm').textContent = hr; $('#hrLive').textContent = hr;
+  $('#hrIr').textContent = s.hr_present ? 'light level '+s.hr_ir : '';
+  $('#hbDot').classList.toggle('on', !!s.bpm);
   if(running && current!=='run') go('run');
   if(!running && current==='run') go('home');
 }

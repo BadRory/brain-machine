@@ -54,6 +54,13 @@
 #define PHOTO_BAND_LO_HZ      15.0f
 #define PHOTO_BAND_HI_HZ      25.0f
 
+// ---- Heart rate (MAX30101/2) ----
+#define HR_CONTACT_IR    30000   // IR level that means "against skin" (raise if false hits)
+#define HR_LED_POWER     0x1F    // IR LED current (~6 mA); raise to 0x3F if signal is weak
+#define HR_BPM_MIN       35
+#define HR_BPM_MAX       180
+#define HR_LOG_EVERY_MS  5000    // history sample interval during a session
+
 // ---- Networking ----
 #define AP_SSID_PREFIX   "BrainMachine-"
 #define MDNS_HOSTNAME    "brainmachine"
